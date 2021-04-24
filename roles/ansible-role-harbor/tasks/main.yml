@@ -1,0 +1,78 @@
+#- name: Installing docker python bindings
+#  become: true
+#  pip:
+#    state: present
+#    name:
+#      - docker
+#      - pyyaml>=3.11
+#      - docker-compose>=1.7.0
+
+- name: Checking if Harbor is already installed
+  stat:
+    path: "{{ harbor_install_dir }}/harbor"
+  register: output
+  until: output is not failed
+#- name: "Downloading Harbor {{ harbor_version }} (offline installer)"
+#  get_url: url={{ harbor_url }} dest=/tmp/harbor.tgz validate_certs=no
+#  when:
+#    - not harbor_folder_st.stat.exists or (harbor_folder_st.stat.isdir is defined and not harbor_folder_st.stat.isdir)
+
+- name: "Creating Harbor directory... ({{ harbor_install_dir }}/harbor)"
+  file:
+    path: "{{ harbor_install_dir }}"
+    state: directory
+    mode: "ug=rxw,o=rx"
+
+- name: creating harbor data dir
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "ug=rwx,o=rwx"
+    recurse: yes
+  with_items:
+    - "{{ harbor_datadir }}"
+
+- name: "Uncompressing Harbor installer..."
+  unarchive:
+    src: /tmp/harbor.tgz
+    dest: "{{ harbor_install_dir }}"
+    copy: no
+
+- name: Copying over harbor.yml
+  template:
+    src: harbor.yaml.j2
+    dest: "{{ harbor_install_dir }}/harbor/harbor.yml"
+
+- name: Copying over docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ harbor_install_dir }}/harbor/docker-compose.yml"
+    force: true
+#    owner: "aicloud"
+#    group: "aicloud"
+    mode: "ug=rw,o=r"
+
+- name: Copying over prepare script
+  template:
+    src: prepare.j2
+    dest: "{{ harbor_install_dir }}/harbor/prepare"
+    mode: a+x
+
+- name: Running Harbor installer...
+  become: yes
+  command: "./install.sh"
+  register: result
+  args:
+    chdir: "{{ harbor_install_dir }}/harbor"
+    creates: '{{ harbor_install_dir }}/harbor/harbor_install_log.txt'
+
+- name: show running harbor info
+  debug: var=result.stdout verbosity=0
+
+- name: "Setting permissions on Harbor common folder......"
+  file:
+    dest: "{{ harbor_install_dir }}/harbor/common"
+    mode: "ug=rwx,o=rx"
+    recurse: yes
+
+
