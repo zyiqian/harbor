@@ -1,6 +1,6 @@
 harbor_version: 2.2.1
 harbor_hostname: "{{inner_ip}}"
-harbor_url: "http://aicloud-nexus.midea.com/repository/public-ftp/kubernetes/package/harbor/harbor-offline-installer-v2.2.1.tgz"
+harbor_url: "http://your_nexeus.com/repository/public-ftp/kubernetes/package/harbor/harbor-offline-installer-v2.2.1.tgz"
 
 # Will create harbor folder inside
 harbor_install_dir: "/apps"
